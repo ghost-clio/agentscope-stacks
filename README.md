@@ -4,6 +4,8 @@
 
 > "Even when the agent is compromised, the math says no."
 
+**[Live Dashboard](https://ghost-clio.github.io/agentscope-stacks/)** · **[GitHub](https://github.com/ghost-clio/agentscope-stacks)** · **[EVM Version](https://ghost-clio.github.io/agent-scope/)**
+
 ## The Problem
 
 AI agents need wallets to transact autonomously. But today it's all-or-nothing: either the agent has full access and can drain everything, or it can't transact at all. There is no middle ground.
