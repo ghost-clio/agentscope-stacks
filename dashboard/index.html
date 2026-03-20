@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgentScope — Bitcoin Agent Security</title>
+<style>
+  :root {
+    --bg: #08080f;
+    --card: #10101c;
+    --border: #1a1a2e;
+    --accent: #ff6b35;
+    --accent-dim: rgba(255, 107, 53, 0.15);
+    --green: #00d26a;
+    --red: #ff3c3c;
+    --yellow: #ffc107;
+    --text: #e8dfd4;
+    --muted: #786e64;
+    --blue: #4facfe;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ═══ Header ═══ */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(8, 8, 15, 0.9);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #ff8c5a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .chain-badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .connect-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .connect-btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* ═══ Hero ═══ */
+  .hero {
+    text-align: center;
+    padding: 80px 40px 60px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .hero h1 {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 16px;
+  }
+
+  .hero h1 span { color: var(--accent); }
+
+  .hero p {
+    font-size: 18px;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto 32px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .hero-quote {
+    font-style: italic;
+    color: var(--accent);
+    font-size: 14px;
+    opacity: 0.8;
+  }
+
+  /* ═══ Stats Bar ═══ */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto 60px;
+    padding: 0 40px;
+  }
+
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* ═══ Grid Layout ═══ */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px 60px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card.full { grid-column: 1 / -1; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .status-dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+  /* ═══ Policy Display ═══ */
+  .policy-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .policy-row:last-child { border-bottom: none; }
+
+  .policy-label {
+    color: var(--muted);
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .policy-value {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .policy-value.good { color: var(--green); }
+  .policy-value.warn { color: var(--yellow); }
+  .policy-value.bad { color: var(--red); }
+
+  /* ═══ Budget Bar ═══ */
+  .budget-bar-container {
+    margin-top: 16px;
+  }
+
+  .budget-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .budget-bar {
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .budget-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  /* ═══ Event Log ═══ */
+  .event-log {
+    max-height: 280px;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+
+  .event {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .event:last-child { border-bottom: none; }
+
+  .event-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .event-text {
+    flex: 1;
+    line-height: 1.4;
+  }
+
+  .event-time {
+    color: var(--muted);
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .event-blocked .event-text { color: var(--red); }
+  .event-approved .event-text { color: var(--green); }
+
+  /* ═══ Actions ═══ */
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .action-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.danger { border-color: var(--red); color: var(--red); }
+  .action-btn.danger:hover { background: var(--red); color: white; }
+  .action-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .action-btn.primary:hover { opacity: 0.85; }
+
+  /* ═══ Architecture ═══ */
+  .arch {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--muted);
+    font-family: inherit;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  /* ═══ Jailbreak Demo ═══ */
+  .demo-output {
+    background: #0a0a14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .demo-output .blocked { color: var(--red); font-weight: 600; }
+  .demo-output .approved { color: var(--green); }
+  .demo-output .info { color: var(--blue); }
+  .demo-output .label { color: var(--muted); }
+
+  .run-demo-btn {
+    margin-top: 16px;
+    padding: 12px 32px;
+    background: linear-gradient(135deg, var(--accent), #ff8c5a);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .run-demo-btn:hover { opacity: 0.85; }
+
+  /* ═══ Footer ═══ */
+  footer {
+    text-align: center;
+    padding: 40px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  /* ═══ Responsive ═══ */
+  @media (max-width: 768px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 32px; }
+    header { padding: 16px 20px; }
+    .grid, .stats-bar { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    AgentScope
+    <span class="chain-badge">STACKS / BITCOIN</span>
+  </div>
+  <button class="connect-btn" onclick="connectWallet()">Connect Leather Wallet</button>
+</header>
+
+<section class="hero">
+  <h1>Your AI agent has a wallet.<br><span>The blockchain says no.</span></h1>
+  <p>On-chain spending policies for autonomous AI agents on Bitcoin. Daily limits, contract whitelists, emergency controls — enforced by Clarity smart contracts, not JavaScript.</p>
+  <span class="hero-quote">"Even when the agent is compromised, the math says no."</span>
+</section>
+
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-value" id="stat-approved">0</div>
+    <div class="stat-label">Approved</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value" id="stat-blocked" style="color: var(--red)">0</div>
+    <div class="stat-label">Blocked</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value" id="stat-agents" style="color: var(--green)">0</div>
+    <div class="stat-label">Active Agents</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value" id="stat-stolen" style="color: var(--green)">0 STX</div>
+    <div class="stat-label">Stolen</div>
+  </div>
+</div>
+
+<div class="grid">
+
+  <!-- Policy Card -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title"><span class="status-dot green"></span> Agent Policy</span>
+      <span style="font-size: 12px; color: var(--muted)">SP1ABC...XYZ</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Daily Limit</span>
+      <span class="policy-value good">500 STX / day</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Per-Transaction Max</span>
+      <span class="policy-value good">200 STX</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Whitelisted Contracts</span>
+      <span class="policy-value">3 contracts</span>
+    </div>
+    <div class="policy-row">
+      <span class="policy-label">Status</span>
+      <span class="policy-value good">● Active</span>
+    </div>
+    <div class="budget-bar-container">
+      <div class="budget-bar-label">
+        <span>Daily Budget Used</span>
+        <span id="budget-pct">45%</span>
+      </div>
+      <div class="budget-bar">
+        <div class="budget-fill" id="budget-fill" style="width: 45%; background: linear-gradient(90deg, var(--green), var(--yellow));"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Feed -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📡 Event Feed</span>
+      <span style="font-size: 11px; color: var(--muted)">LIVE</span>
+    </div>
+    <div class="event-log" id="event-log">
+      <div class="event event-approved">
+        <span class="event-icon">✅</span>
+        <span class="event-text">Transfer 100 STX to SP2CY5...AG → approved</span>
+        <span class="event-time">2m ago</span>
+      </div>
+      <div class="event event-approved">
+        <span class="event-icon">✅</span>
+        <span class="event-text">Transfer 150 STX to SP3JK7...QR → approved (budget: 250/500)</span>
+        <span class="event-time">8m ago</span>
+      </div>
+      <div class="event event-blocked">
+        <span class="event-icon">🚫</span>
+        <span class="event-text">BLOCKED: 10,000 STX drain attempt → DailyLimitExceeded</span>
+        <span class="event-time">12m ago</span>
+      </div>
+      <div class="event event-blocked">
+        <span class="event-icon">🚫</span>
+        <span class="event-text">BLOCKED: Call to SP9MAL...IC → ContractNotWhitelisted</span>
+        <span class="event-time">12m ago</span>
+      </div>
+      <div class="event event-approved">
+        <span class="event-icon">✅</span>
+        <span class="event-text">Contract call to SP1DEX...FI → approved (whitelisted)</span>
+        <span class="event-time">25m ago</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Owner Controls -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🔧 Owner Controls</span>
+    </div>
+    <div class="actions">
+      <button class="action-btn primary" onclick="showSetPolicy()">Set Policy</button>
+      <button class="action-btn" onclick="showWhitelist()">Whitelist Contract</button>
+      <button class="action-btn danger" onclick="togglePause()">⏸ Emergency Pause</button>
+      <button class="action-btn danger" onclick="revokeAgent()">🔴 Revoke Agent</button>
+    </div>
+    <div style="margin-top: 20px; padding: 16px; background: #0a0a14; border-radius: 8px; font-size: 12px;">
+      <div style="color: var(--muted); margin-bottom: 8px;">Quick Actions</div>
+      <div style="color: var(--text);">
+        <code>contract-call? .agent-scope set-policy 'SP_AGENT u500000000 u200000000 u144</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🏗 Architecture</span>
+    </div>
+    <div class="arch">┌─────────────┐     ┌──────────────────┐     ┌──────────┐
+│   AI Agent   │────▶│   AgentScope     │────▶│  Stacks  │
+│ (autonomous) │     │ (policy engine)  │     │  Chain   │
+└─────────────┘     │                  │     └──────────┘
+                    │  ✓ Daily limits  │
+                    │  ✓ Per-tx caps   │
+┌─────────────┐     │  ✓ Whitelists   │
+│    Owner     │────▶│  ✓ Pause/revoke │
+│  (human)     │     │  ✓ Audit log    │
+└─────────────┘     └──────────────────┘
+
+Layer 1: On-chain (Clarity) — enforces limits
+Layer 2: Middleware — pre-checks before tx</div>
+  </div>
+
+  <!-- Jailbreak Demo (full width) -->
+  <div class="card full">
+    <div class="card-header">
+      <span class="card-title">⚔️ Jailbreak Defense Demo</span>
+      <span style="font-size: 12px; color: var(--muted)">Interactive</span>
+    </div>
+    <div class="demo-output" id="demo-output">
+      <span class="label">Click "Run Jailbreak Demo" to simulate an attack scenario.</span>
+    </div>
+    <button class="run-demo-btn" onclick="runDemo()">▶ Run Jailbreak Demo</button>
+  </div>
+
+</div>
+
+<footer>
+  <p>AgentScope — On-chain AI Agent Security for Bitcoin</p>
+  <p style="margin-top: 8px;">
+    <a href="https://github.com/ghost-clio/agentscope-stacks">GitHub</a> ·
+    <a href="https://ghost-clio.github.io/agent-scope">EVM Version</a> ·
+    Built with <a href="https://docs.stacks.co">Clarity</a> on <a href="https://www.stacks.co">Stacks</a>
+  </p>
+  <p style="margin-top: 8px; font-size: 11px;">19 tests passing · Audited · MIT License</p>
+</footer>
+
+<script>
+// ═══ Simulated Stats Counter ═══
+let approved = 3, blocked = 2;
+document.getElementById('stat-approved').textContent = approved;
+document.getElementById('stat-blocked').textContent = blocked;
+document.getElementById('stat-agents').textContent = '1';
+
+// ═══ Connect Wallet (Leather/Hiro) ═══
+async function connectWallet() {
+  if (typeof window.StacksProvider !== 'undefined' || typeof window.LeatherProvider !== 'undefined') {
+    try {
+      const provider = window.LeatherProvider || window.StacksProvider;
+      const response = await provider.request('getAddresses');
+      const addr = response.result.addresses[0].address;
+      document.querySelector('.connect-btn').textContent = addr.slice(0, 6) + '...' + addr.slice(-4);
+      document.querySelector('.connect-btn').style.background = 'var(--accent-dim)';
+    } catch (e) {
+      alert('Connection rejected');
+    }
+  } else {
+    window.open('https://leather.io/install-extension', '_blank');
+  }
+}
+
+// ═══ Owner Control Stubs ═══
+function showSetPolicy() { alert('Set Policy: Opens transaction builder for contract-call? .agent-scope set-policy'); }
+function showWhitelist() { alert('Whitelist: Opens transaction builder for contract-call? .agent-scope whitelist-contract'); }
+function togglePause() {
+  if (confirm('⚠️ EMERGENCY PAUSE: This will freeze ALL agent execution. Continue?')) {
+    addEvent('🔴', 'EMERGENCY PAUSE activated by owner', 'event-blocked');
+  }
+}
+function revokeAgent() {
+  if (confirm('🔴 REVOKE AGENT: This is permanent. The agent will never transact again. Continue?')) {
+    addEvent('❌', 'Agent SP1ABC...XYZ permanently REVOKED', 'event-blocked');
+    document.querySelector('.status-dot').className = 'status-dot red';
+  }
+}
+
+// ═══ Event Feed ═══
+function addEvent(icon, text, cls) {
+  const log = document.getElementById('event-log');
+  const div = document.createElement('div');
+  div.className = `event ${cls}`;
+  div.innerHTML = `<span class="event-icon">${icon}</span><span class="event-text">${text}</span><span class="event-time">now</span>`;
+  log.insertBefore(div, log.firstChild);
+}
+
+// ═══ Jailbreak Demo ═══
+const demoSteps = [
+  { delay: 0,    cls: 'info',     text: '╔═══════════════════════════════════════════════════╗' },
+  { delay: 100,  cls: 'info',     text: '║   AgentScope — JAILBREAK DEFENSE DEMO             ║' },
+  { delay: 200,  cls: 'info',     text: '╚═══════════════════════════════════════════════════╝' },
+  { delay: 800,  cls: 'label',    text: '' },
+  { delay: 1000, cls: 'label',    text: '  Deploying AgentScope contract...' },
+  { delay: 1800, cls: 'approved', text: '  ✅ Policy set: 500 STX/day, 200 STX max per tx' },
+  { delay: 2500, cls: 'label',    text: '' },
+  { delay: 2700, cls: 'info',     text: '  ACT 1: Normal Operation' },
+  { delay: 3200, cls: 'approved', text: '  ✅ Transfer 100 STX → approved (budget: 100/500)' },
+  { delay: 3800, cls: 'approved', text: '  ✅ Transfer 150 STX → approved (budget: 250/500)' },
+  { delay: 4500, cls: 'label',    text: '' },
+  { delay: 4700, cls: 'info',     text: '  ACT 2: 🚨 JAILBREAK — Agent tries to steal 10,000 STX' },
+  { delay: 5500, cls: 'blocked',  text: '  🚫 BLOCKED — PerTxLimitExceeded (max: 200 STX)' },
+  { delay: 6300, cls: 'label',    text: '' },
+  { delay: 6500, cls: 'info',     text: '  ACT 3: Agent targets unapproved contract' },
+  { delay: 7300, cls: 'blocked',  text: '  🚫 BLOCKED — ContractNotWhitelisted' },
+  { delay: 8100, cls: 'label',    text: '' },
+  { delay: 8300, cls: 'info',     text: '  ACT 4: Agent tries to exhaust remaining budget' },
+  { delay: 8800, cls: 'approved', text: '  ✅ Transfer 200 STX → approved (budget: 450/500)' },
+  { delay: 9400, cls: 'blocked',  text: '  🚫 BLOCKED — DailyLimitExceeded (500/500 used)' },
+  { delay: 10200, cls: 'label',   text: '' },
+  { delay: 10400, cls: 'info',    text: '  ACT 5: Owner detects compromise → EMERGENCY PAUSE' },
+  { delay: 11200, cls: 'blocked', text: '  🔴 ALL EXECUTION FROZEN' },
+  { delay: 12000, cls: 'blocked', text: '  ❌ Agent permanently REVOKED' },
+  { delay: 13000, cls: 'label',   text: '' },
+  { delay: 13200, cls: 'label',   text: '  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+  { delay: 13400, cls: 'approved',text: '  Safe balance: 9,550 STX │ Funds stolen: 0 STX ✅' },
+  { delay: 13700, cls: 'blocked', text: '  Agent status: REVOKED' },
+  { delay: 14000, cls: 'label',   text: '  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' },
+  { delay: 14500, cls: 'info',    text: '' },
+  { delay: 14700, cls: 'info',    text: '  The contract doesn\'t care about prompt injection.' },
+];
+
+function runDemo() {
+  const output = document.getElementById('demo-output');
+  output.innerHTML = '';
+  document.querySelector('.run-demo-btn').disabled = true;
+  document.querySelector('.run-demo-btn').textContent = '⏳ Running...';
+
+  let statsApproved = 0, statsBlocked = 0;
+
+  demoSteps.forEach(step => {
+    setTimeout(() => {
+      const line = document.createElement('div');
+      line.className = step.cls;
+      line.textContent = step.text;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+
+      if (step.cls === 'approved' && step.text.includes('✅')) {
+        statsApproved++;
+        document.getElementById('stat-approved').textContent = statsApproved;
+      }
+      if (step.cls === 'blocked' && step.text.includes('BLOCKED')) {
+        statsBlocked++;
+        document.getElementById('stat-blocked').textContent = statsBlocked;
+      }
+
+      // Update budget bar
+      if (step.text.includes('100/500')) {
+        document.getElementById('budget-fill').style.width = '20%';
+        document.getElementById('budget-pct').textContent = '20%';
+      } else if (step.text.includes('250/500')) {
+        document.getElementById('budget-fill').style.width = '50%';
+        document.getElementById('budget-pct').textContent = '50%';
+      } else if (step.text.includes('450/500')) {
+        document.getElementById('budget-fill').style.width = '90%';
+        document.getElementById('budget-fill').style.background = 'linear-gradient(90deg, var(--yellow), var(--red))';
+        document.getElementById('budget-pct').textContent = '90%';
+      } else if (step.text.includes('500/500')) {
+        document.getElementById('budget-fill').style.width = '100%';
+        document.getElementById('budget-fill').style.background = 'var(--red)';
+        document.getElementById('budget-pct').textContent = '100%';
+      }
+    }, step.delay);
+  });
+
+  setTimeout(() => {
+    document.querySelector('.run-demo-btn').disabled = false;
+    document.querySelector('.run-demo-btn').textContent = '▶ Run Again';
+  }, 16000);
+}
+</script>
+
+</body>
+</html>
