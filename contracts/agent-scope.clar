@@ -10,7 +10,7 @@
 ;; Error codes
 ;; ============================================================================
 (define-constant ERR-NOT-OWNER (err u100))
-(define-constant ERR-NOT-AGENT (err u101))
+;; Reserved: u101 (ERR-NOT-AGENT)
 (define-constant ERR-PAUSED (err u102))
 (define-constant ERR-DAILY-LIMIT (err u103))
 (define-constant ERR-PER-TX-LIMIT (err u104))
@@ -18,8 +18,7 @@
 (define-constant ERR-AGENT-REVOKED (err u106))
 (define-constant ERR-NO-POLICY (err u107))
 (define-constant ERR-ZERO-AMOUNT (err u108))
-(define-constant ERR-ALREADY-ACTIVE (err u109))
-(define-constant ERR-SESSION-EXPIRED (err u110))
+;; Reserved: u109 (ERR-ALREADY-ACTIVE), u110 (ERR-SESSION-EXPIRED)
 
 ;; ============================================================================
 ;; Data variables -- global state
@@ -109,8 +108,11 @@
     (if (>= (- current-block (get window-start spending)) window-size)
       ;; Window expired -- full budget available
       (ok (get daily-limit policy))
-      ;; Within window -- return remaining
-      (ok (- (get daily-limit policy) (get spent-today spending)))
+      ;; Within window -- return remaining (saturating subtraction)
+      (if (>= (get spent-today spending) (get daily-limit policy))
+        (ok u0)
+        (ok (- (get daily-limit policy) (get spent-today spending)))
+      )
     )
   )
 )
@@ -138,12 +140,16 @@
       active: true,
       revoked: false
     })
-    (map-set agent-spending agent {
-      spent-today: u0,
-      window-start: stacks-block-height,
-      tx-count: u0,
-      last-tx-block: u0
-    })
+    ;; Only initialize spending if agent is new (don't reset on policy updates)
+    (match (map-get? agent-spending agent)
+      existing-spending true  ;; already has spending data, keep it
+      (map-set agent-spending agent {
+        spent-today: u0,
+        window-start: stacks-block-height,
+        tx-count: u0,
+        last-tx-block: u0
+      })
+    )
     (print { event: "policy-set", agent: agent, daily-limit: daily-limit, per-tx-limit: per-tx-limit })
     (ok true)
   )
@@ -276,12 +282,21 @@
   )
 )
 
-;; Execute a contract call -- must be whitelisted
+;; Approve a contract call -- must be whitelisted + within daily limits
+;; NOTE: This is a permission oracle, not a direct executor. Clarity's
+;; contract-call? requires static dispatch (known at deploy time), so
+;; dynamic agent->arbitrary contract calls must be composed externally.
+;; The middleware checks approval here BEFORE executing the actual call.
 (define-public (execute-contract-call (target principal) (amount uint))
   (let
     (
       (agent tx-sender)
       (policy (unwrap! (map-get? agent-policies agent) ERR-NO-POLICY))
+      (spending (default-to
+        { spent-today: u0, window-start: u0, tx-count: u0, last-tx-block: u0 }
+        (map-get? agent-spending agent)))
+      (window-size u144)
+      (current-block stacks-block-height)
     )
     ;; Check: not paused
     (asserts! (not (var-get paused)) ERR-PAUSED)
@@ -293,19 +308,48 @@
     ;; Check: target is whitelisted
     (asserts! (is-whitelisted agent target) ERR-NOT-WHITELISTED)
     
+    ;; Check: amount > 0
+    (asserts! (> amount u0) ERR-ZERO-AMOUNT)
+    
     ;; Check: per-tx limit
     (asserts! (<= amount (get per-tx-limit policy)) ERR-PER-TX-LIMIT)
     
-    ;; Log the approved call (actual contract-call would be composed externally)
-    (var-set total-approved (+ (var-get total-approved) u1))
-    
-    (print {
-      event: "contract-call-approved",
-      agent: agent,
-      target: target,
-      amount: amount
-    })
-    (ok true)
+    ;; Check: daily limit (with window reset)
+    (let
+      (
+        (effective-spent
+          (if (>= (- current-block (get window-start spending)) window-size)
+            u0
+            (get spent-today spending)
+          ))
+        (new-window-start
+          (if (>= (- current-block (get window-start spending)) window-size)
+            current-block
+            (get window-start spending)
+          ))
+      )
+      (asserts! (<= (+ effective-spent amount) (get daily-limit policy)) ERR-DAILY-LIMIT)
+      
+      ;; Update spending tracker
+      (map-set agent-spending agent {
+        spent-today: (+ effective-spent amount),
+        window-start: new-window-start,
+        tx-count: (+ (get tx-count spending) u1),
+        last-tx-block: current-block
+      })
+      
+      ;; Update stats
+      (var-set total-approved (+ (var-get total-approved) u1))
+      
+      (print {
+        event: "contract-call-approved",
+        agent: agent,
+        target: target,
+        amount: amount,
+        remaining: (- (get daily-limit policy) (+ effective-spent amount))
+      })
+      (ok true)
+    )
   )
 )
 
